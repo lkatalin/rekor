@@ -16,7 +16,7 @@
 package sharding
 
 import (
-	"fmt"
+	"strconv"
 )
 
 // A FullID refers to a specific artifact's ID and is made of two components,
@@ -40,19 +40,9 @@ type ShardID struct {
 	ShardIDString string
 }
 
-// Create a 6-digit string from shardID
-func IntToString(i uint64) string {
-	return fmt.Sprintf("%06d", i)
-}
-
 // Create default values
 func NewCurrent(current uint64) ShardID {
 	return ShardID{
 		ShardIDInt:    current,
-		ShardIDString: IntToString(current)}
+		ShardIDString: strconv.FormatUint(current, 10)}
 }
-
-// TODO: The shardID will be part of the state and will be updated. Store it in state.go?
-// TODO: Add a check that the CurrentShardID cannot be updated beyond 999,999
-
-//var CurrentShardID uint64 = flags.ActiveIndex()
