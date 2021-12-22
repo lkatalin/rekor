@@ -36,23 +36,23 @@ const FullIDLen = ShardIDLen + UUIDLen + SeparatorLen
 // A ShardID is a number with specific properties, including
 // its representation as a six-digit string.
 type ShardID struct {
-	ShardIDInt    uint32
+	ShardIDInt    uint64
 	ShardIDString string
 }
 
 // Create a 6-digit string from shardID
-func IntToString(i uint32) string {
+func IntToString(i uint64) string {
 	return fmt.Sprintf("%06d", i)
 }
 
 // Create default values
-func NewCurrent() ShardID {
+func NewCurrent(current uint64) ShardID {
 	return ShardID{
-		ShardIDInt:    CurrentShardID,
-		ShardIDString: IntToString(CurrentShardID)}
+		ShardIDInt:    current,
+		ShardIDString: IntToString(current)}
 }
 
 // TODO: The shardID will be part of the state and will be updated. Store it in state.go?
 // TODO: Add a check that the CurrentShardID cannot be updated beyond 999,999
 
-var CurrentShardID uint32 = 0
+//var CurrentShardID uint64 = flags.ActiveIndex()
