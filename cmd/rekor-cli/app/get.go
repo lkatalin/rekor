@@ -36,6 +36,7 @@ import (
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/rekor/pkg/log"
 	"github.com/sigstore/rekor/pkg/types"
+	//"github.com/sigstore/rekor/cmd/rekor-server/app"
 )
 
 type getCmdOutput struct {

@@ -17,6 +17,7 @@ package sharding
 
 import (
 	"strconv"
+	//"github.com/sigstore/rekor/cmd/rekor-server/app"
 )
 
 // A FullID refers to a specific artifact's ID and is made of two components,
@@ -46,3 +47,5 @@ func NewCurrent(current uint64) ShardID {
 		ShardIDInt:    current,
 		ShardIDString: strconv.FormatUint(current, 10)}
 }
+
+//var CurrentShardID = app.flags.ActiveIndex()

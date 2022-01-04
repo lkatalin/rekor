@@ -36,8 +36,8 @@ import (
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc/codes"
 
-	"github.com/sigstore/rekor/cmd/rekor-cli/app/sharding"
-	"github.com/sigstore/rekor/cmd/rekor-server/app/flags"
+	//"github.com/sigstore/rekor/cmd/rekor-cli/app/sharding"
+	"github.com/sigstore/rekor/cmd/rekor-server/app"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/rekor/pkg/generated/restapi/operations/entries"
 	"github.com/sigstore/rekor/pkg/log"
@@ -94,8 +94,9 @@ func logEntryFromLeaf(ctx context.Context, signer signature.Signer, tc TrillianC
 		Hashes:   hashes,
 	}
 
-	shardID := sharding.NewCurrent()
-	uuid := shardID.ShardIDString + sharding.FullIDSeparator + hex.EncodeToString(leaf.MerkleLeafHash)
+	shardID := sharding.NewCurrent(app.flags.ActiveIndex())
+	//uuid := shardID.ShardIDString + sharding.FullIDSeparator + hex.EncodeToString(leaf.MerkleLeafHash)
+	uuid := hex.EncodeToString(leaf.MerkleLeafHash)
 	if viper.GetBool("enable_attestation_storage") {
 		att, typ, err := storageClient.FetchAttestation(ctx, uuid)
 		if err != nil {
@@ -186,8 +187,9 @@ func createLogEntry(params entries.CreateLogEntryParams) (models.LogEntry, middl
 	metricNewEntries.Inc()
 
 	queuedLeaf := resp.getAddResult.QueuedLeaf.Leaf
-	shardID := sharding.NewCurrent(flags.ActiveIndex())
-	uuid := shardID.ShardIDString + sharding.FullIDSeparator + hex.EncodeToString(queuedLeaf.GetMerkleLeafHash())
+	//shardID := sharding.NewCurrent(0)
+	//uuid := shardID.ShardIDString + sharding.FullIDSeparator + hex.EncodeToString(queuedLeaf.GetMerkleLeafHash())
+	uuid := hex.EncodeToString(queuedLeaf.GetMerkleLeafHash())
 
 	logEntryAnon := models.LogEntryAnon{
 		LogID:          swag.String(api.pubkeyHash),
