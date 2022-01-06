@@ -195,7 +195,7 @@ func validateFileOrURL(v string) error {
 
 // validateID ensures the ID is either an EntryID (TreeID + UUID) or a UUID
 func validateID(v string) error {
-	if len(v) != sharding.EntryHexStringLen && len(v) != sharding.UUIDHexStringLen {
+	if len(v) != sharding.EntryIDHexStringLen && len(v) != sharding.UUIDHexStringLen {
 		return fmt.Errorf("ID len error, expected %v (EntryID) or %v (UUID) but got len %v for ID %v", sharding.EntryIDHexStringLen, sharding.UUIDHexStringLen, len(v), v)
 	}
 
