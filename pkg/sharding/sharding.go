@@ -130,6 +130,10 @@ func GetUUIDFromIDString(id string) (string, error) {
 	return id[len(id)-UUIDHexStringLen:], nil
 }
 
+func (e EntryID) ReturnEntryIDString() string {
+	return e.TreeID + e.UUID
+}
+
 // Returns UUID (with no prepended TreeID) from a UUID or EntryID string
 func GetUUIDFromIDString(id string) (string, error) {
 	if len(id) != UUIDHexStringLen && len(id) != EntryIDHexStringLen {
