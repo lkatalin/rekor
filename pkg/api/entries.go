@@ -117,7 +117,9 @@ func logEntryFromLeaf(ctx context.Context, signer signature.Signer, tc TrillianC
 // GetLogEntryAndProofByIndexHandler returns the entry and inclusion proof for a specified log index
 func GetLogEntryByIndexHandler(params entries.GetLogEntryByIndexParams) middleware.Responder {
 	ctx := params.HTTPRequest.Context()
-	tc := NewTrillianClient(ctx)
+
+	// TODO: make sure ActiveIndex() resolves to the correct treeID based on what's in the API struct
+	tc := NewTrillianClientFromTreeID(ctx, int64(api.logRanges.ActiveIndex()))
 
 	resp := tc.getLeafAndProofByIndex(params.LogIndex)
 	switch resp.status {
