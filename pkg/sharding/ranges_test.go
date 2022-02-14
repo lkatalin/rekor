@@ -60,14 +60,14 @@ func TestLogRanges_ResolveVirtualIndex(t *testing.T) {
 func TestLogRanges_IsEmpty(t *testing.T) {
 	emptyLogRanges := CreateEmptyLogRanges()
 	if !emptyLogRanges.IsEmpty() {
-		t.Errorf("Empty logRanges struct tests as non-empty")
+		t.Errorf("Empty logRanges struct tests as non-empty with len: %v", len(emptyLogRanges.Ranges))
 	}
 
-	logRange := logRange {TreeID: 1, TreeLength: 2}
-	nonEmptyLogRanges := append(emptyLogRanges.Ranges, logRange)
+	logRange := LogRange {TreeID: 1, TreeLength: 2}
+	nonEmptyLogRanges := CreateLogRangesFromRanges([]LogRange{logRange})
 
-	if nonEmptyLoganges.IsEmpty() {
-		t.Errorf("Non-empty logRanges struct tests as empty")
+	if nonEmptyLogRanges.IsEmpty() {
+		t.Errorf("Non-empty logRanges (len: %v) struct tests as empty", len(nonEmptyLogRanges.Ranges))
 	}
 }
 
@@ -77,16 +77,21 @@ func TestLogRanges_IsValid(t *testing.T) {
 		t.Errorf("Empty logRanges struct tests as valid")
 	}
 
-	logRangeInvalid := logRange {TreeID: 0, TreeLength: 7}
-	logRangeValid := logRange {TreeID: 7:, TreeLength: 0}
+	logRangeInvalid := LogRange {TreeID: 0, TreeLength: 7}
+	logRangeValid := LogRange {TreeID: 7, TreeLength: 0}
 
-	validLogRanges := append(emptyLogRanges.Ranges, logRangeValid)
+	validLogRanges := CreateLogRangesFromRanges([]LogRange{logRangeValid})
 	if !validLogRanges.IsValid() {
 		t.Errorf("Valid logRanges struct tests as invalid")
 	}
 
-	invalidLogRanges := append(validLogRanges.Ranges, logRangeInvalid)
+	invalidLogRanges := CreateLogRangesFromRanges([]LogRange{logRangeInvalid})
 	if invalidLogRanges.IsValid() {
 		t.Errorf("Invalid logRanges struct tests as valid")
+	}
+
+	nullLogRanges := CreateLogRangesFromRanges([]LogRange{})
+	if nullLogRanges.IsValid() {
+		t.Errorf("logRanges struct with null data tests as valid")
 	}
 }

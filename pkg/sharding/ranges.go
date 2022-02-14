@@ -26,8 +26,13 @@ type LogRange struct {
 
 func CreateEmptyLogRanges() LogRanges {
 	return LogRanges {
-		Ranges: []LogRange{{}},
+		Ranges: []LogRange{},
 	}
+}
+
+func CreateLogRangesFromRanges(r []LogRange) LogRanges {
+	return LogRanges {
+		Ranges: r}
 }
 
 func (l *LogRanges) IsEmpty() bool {
@@ -40,9 +45,14 @@ func (l *LogRanges) IsValid() bool {
 		return false
 	}
 
-	// Test whether any TreeIDs are zero
+	// Test whether any TreeIDs are zero or ranges
+	// have null data
 	for _, r := range l.Ranges {
 		if r.TreeID == 0 {
+			return false
+		}
+
+		if r == (LogRange{}) {
 			return false
 		}
 	}
