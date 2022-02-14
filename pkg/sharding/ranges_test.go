@@ -56,3 +56,37 @@ func TestLogRanges_ResolveVirtualIndex(t *testing.T) {
 		}
 	}
 }
+
+func TestLogRanges_IsEmpty(t *testing.T) {
+	emptyLogRanges := CreateEmptyLogRanges()
+	if !emptyLogRanges.IsEmpty() {
+		t.Errorf("Empty logRanges struct tests as non-empty")
+	}
+
+	logRange := logRange {TreeID: 1, TreeLength: 2}
+	nonEmptyLogRanges := append(emptyLogRanges.Ranges, logRange)
+
+	if nonEmptyLoganges.IsEmpty() {
+		t.Errorf("Non-empty logRanges struct tests as empty")
+	}
+}
+
+func TestLogRanges_IsValid(t *testing.T) {
+	emptyLogRanges := CreateEmptyLogRanges()
+	if emptyLogRanges.IsValid() {
+		t.Errorf("Empty logRanges struct tests as valid")
+	}
+
+	logRangeInvalid := logRange {TreeID: 0, TreeLength: 7}
+	logRangeValid := logRange {TreeID: 7:, TreeLength: 0}
+
+	validLogRanges := append(emptyLogRanges.Ranges, logRangeValid)
+	if !validLogRanges.IsValid() {
+		t.Errorf("Valid logRanges struct tests as invalid")
+	}
+
+	invalidLogRanges := append(validLogRanges.Ranges, logRangeInvalid)
+	if invalidLogRanges.IsValid() {
+		t.Errorf("Invalid logRanges struct tests as valid")
+	}
+}

@@ -24,6 +24,34 @@ type LogRange struct {
 	TreeLength uint64
 }
 
+func CreateEmptyLogRanges() LogRanges {
+	return LogRanges {
+		Ranges: []LogRange{{}},
+	}
+}
+
+func (l *LogRanges) IsEmpty() bool {
+	return len(l.Ranges) == 0
+}
+
+func (l *LogRanges) IsValid() bool {
+	// Test whether struct is empty
+	if l.IsEmpty() {
+		return false
+	}
+
+	// Test whether any TreeIDs are zero
+	for _, r := range l.Ranges {
+		if r.TreeID == 0 {
+			return false
+		}
+	}
+
+	// TODO: more invalid cases here?
+
+	return true
+}
+
 func (l *LogRanges) ResolveVirtualIndex(index int) (uint64, uint64) {
 	indexLeft := index
 	for _, l := range l.Ranges {
@@ -39,5 +67,9 @@ func (l *LogRanges) ResolveVirtualIndex(index int) (uint64, uint64) {
 
 // ActiveIndex returns the active shard index, always the last shard in the range
 func (l *LogRanges) ActiveIndex() uint64 {
-	return l.Ranges[len(l.Ranges)-1].TreeID
+	if len(l.Ranges) == 0 {
+		return 0
+	} else {
+		return l.Ranges[len(l.Ranges)-1].TreeID
+	}
 }

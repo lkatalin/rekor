@@ -87,6 +87,8 @@ func NewAPI(ranges sharding.LogRanges) (*API, error) {
 		tLogID = t.TreeId
 	}
 
+	// set tree id here from lrm for writes?
+
 	rekorSigner, err := signer.New(ctx, viper.GetString("rekor_server.signer"))
 	if err != nil {
 		return nil, errors.Wrap(err, "getting new signer")

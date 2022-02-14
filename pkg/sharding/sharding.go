@@ -39,11 +39,15 @@ const UUIDHexStringLen = 64
 const EntryIDHexStringLen = TreeIDHexStringLen + UUIDHexStringLen
 
 // TODO: replace this with the actual LogRanges struct when logic is hooked up
-var dummyLogRanges = LogRanges{
+/*var DummyLogRanges = LogRanges{
 	Ranges: []LogRange{
 		{
 			TreeID:     0,
 			TreeLength: 0}},
+}*/
+
+var DummyLogRanges = LogRanges{
+	Ranges: []LogRange{{}},
 }
 
 type EntryID struct {
@@ -93,8 +97,12 @@ func createEmptyEntryID() EntryID {
 
 func CreateEntryIDWithActiveTreeID(uuid string) (EntryID, error) {
 	// TODO: Update this to be the global LogRanges struct
-	treeid := strconv.FormatUint(dummyLogRanges.ActiveIndex(), 10)
+	treeid := strconv.FormatUint(DummyLogRanges.ActiveIndex(), 10)
 	return CreateEntryIDFromParts(treeid, uuid)
+}
+
+func (e EntryID) IsEmpty() bool {
+	return e.TreeID == "" && e.UUID == ""
 }
 
 func (e EntryID) ReturnEntryIDString() string {

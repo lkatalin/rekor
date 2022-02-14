@@ -119,7 +119,12 @@ func GetLogEntryByIndexHandler(params entries.GetLogEntryByIndexParams) middlewa
 	ctx := params.HTTPRequest.Context()
 
 	// TODO: make sure ActiveIndex() resolves to the correct treeID based on what's in the API struct
-	tc := NewTrillianClientFromTreeID(ctx, int64(api.logRanges.ActiveIndex()))
+	//active := int64(api.logRanges.ActiveIndex())
+	//tc := NewTrillianClientFromTreeID(ctx, int64(api.logRanges.ActiveIndex()))
+	fmt.Println("\nlogRanges struct from api: %v\n", api.logRanges)
+	fmt.Println("\nlogRanges struct from dummy: %v\n", sharding.DummyLogRanges)
+
+	tc := NewTrillianClient(ctx)
 
 	resp := tc.getLeafAndProofByIndex(params.LogIndex)
 	switch resp.status {
