@@ -39,13 +39,6 @@ const UUIDHexStringLen = 64
 const EntryIDHexStringLen = TreeIDHexStringLen + UUIDHexStringLen
 
 // TODO: replace this with the actual LogRanges struct when logic is hooked up
-/*var DummyLogRanges = LogRanges{
-	Ranges: []LogRange{
-		{
-			TreeID:     0,
-			TreeLength: 0}},
-}*/
-
 var DummyLogRanges = LogRanges{
 	Ranges: []LogRange{{}},
 }
