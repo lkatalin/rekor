@@ -131,13 +131,13 @@ func TestCreateEntryIDWithActiveTreeID(t *testing.T) {
 	}
 
 	// TODO: Update dummy to be the global LogRanges struct
-	activeIndexString := strconv.FormatUint(DummyLogRanges.ActiveIndex(), 10)
+	activeIndexString := strconv.FormatUint(dummyLogRanges.ActiveIndex(), 10)
 	expectedTreeID, err := PadToTreeIDLen(activeIndexString)
 	if err != nil {
 		t.Errorf("unable to pad %v to treeIDLen: %v", activeIndexString, err)
 	}
 	if entryID.TreeID != expectedTreeID {
-		t.Errorf("expected entryID.TreeID %v but got %v", DummyLogRanges.ActiveIndex(), entryID.TreeID)
+		t.Errorf("expected entryID.TreeID %v but got %v", dummyLogRanges.ActiveIndex(), entryID.TreeID)
 	}
 
 	if entryID.UUID != validUUID {

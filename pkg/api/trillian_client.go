@@ -48,10 +48,10 @@ func NewTrillianClient(ctx context.Context) TrillianClient {
 	}
 }
 
-func NewTrillianClientFromTreeID(ctx context.Context, logID int64) TrillianClient {
+func NewTrillianClientFromTreeID(ctx context.Context, TreeID int64) TrillianClient {
 	return TrillianClient{
 		client:  api.logClient,
-		logID:   logID,
+		logID:   TreeID,
 		context: ctx,
 	}
 }
