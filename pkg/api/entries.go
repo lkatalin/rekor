@@ -274,8 +274,21 @@ func GetLogEntryByUUIDHandler(params entries.GetLogEntryByUUIDParams) middleware
 	if err != nil {
 		return handleRekorAPIError(params, http.StatusBadRequest, err, "")
 	}
+	var tid int64
+	tid, err = sharding.GetTreeIDFromEntryIDString(params.EntryUUID)
+	if err != nil {
+		log.Logger.Infof("error getting the uuid from entryuuid")
+		// If EntryID is plan UUID, assume no sharding and use ActiveIndex
+		if err.Error() == "cannot get treeID from plain UUID" {
+			tid = int64(api.logRanges.ActiveIndex())
+		} else {
+			return handleRekorAPIError(params, http.StatusBadRequest, err, "")
+		}
+	}
 	hashValue, _ := hex.DecodeString(entryUUID)
-	tc := NewTrillianClient(params.HTTPRequest.Context())
+	//tc := NewTrillianClient(params.HTTPRequest.Context())
+	tc := NewTrillianClientFromTreeID(params.HTTPRequest.Context(), tid)
+	log.Logger.Infof("getting uuid %v from tree %v", entryUUID, tid)
 
 	resp := tc.getLeafAndProofByHash(hashValue)
 	switch resp.status {

@@ -39,7 +39,7 @@ const UUIDHexStringLen = 64
 const EntryIDHexStringLen = TreeIDHexStringLen + UUIDHexStringLen
 
 // TODO: replace this with the actual LogRanges struct when logic is hooked up
-var DummyLogRanges = LogRanges{
+var dummyLogRanges = LogRanges{
 	Ranges: []LogRange{{}},
 }
 
@@ -90,7 +90,7 @@ func createEmptyEntryID() EntryID {
 
 func CreateEntryIDWithActiveTreeID(uuid string) (EntryID, error) {
 	// TODO: Update this to be the global LogRanges struct
-	treeid := strconv.FormatUint(DummyLogRanges.ActiveIndex(), 10)
+	treeid := strconv.FormatUint(dummyLogRanges.ActiveIndex(), 10)
 	return CreateEntryIDFromParts(treeid, uuid)
 }
 
@@ -124,4 +124,25 @@ func GetUUIDFromIDString(id string) (string, error) {
 	}
 
 	return id[len(id)-UUIDHexStringLen:], nil
+}
+
+// Returns TreeID from an EntryID string
+// TODO: Add some tests
+func GetTreeIDFromEntryIDString(id string) (int64, error) {
+	if len(id) == UUIDHexStringLen {
+		return -1, fmt.Errorf("cannot get treeID from plain UUID")
+	} else if len(id) == EntryIDHexStringLen {
+		if _, err := hex.DecodeString(id); err != nil{
+			return -1, fmt.Errorf("id %v is not a valid hex string: %v", id, err)
+		}
+
+		s := id[:TreeIDHexStringLen]
+		i, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return -1, fmt.Errorf("could not convert treeID %v to int64: %v", s, err)
+		} 
+		return i, nil
+	}
+
+	return -1, fmt.Errorf("invalid ID len %v for %v", len(id), id)
 }

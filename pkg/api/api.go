@@ -85,11 +85,8 @@ func NewAPI(ranges sharding.LogRanges) (*API, error) {
 			return nil, errors.Wrap(err, "create and init tree")
 		}
 		tLogID = t.TreeId
-		log.Logger.Infof("previous log range was %v", ranges.Ranges)
 		lr := append(ranges.Ranges, sharding.LogRange{TreeID: uint64(t.TreeId)})
 		ranges.Ranges = lr
-		log.Logger.Infof("tree id is %v", t.TreeId)
-		log.Logger.Infof("new log range is %v", ranges.Ranges)
 	}
 
 	// set tree id here from lrm for writes?
