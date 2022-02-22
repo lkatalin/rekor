@@ -76,6 +76,7 @@ func GetLogInfoHandler(params tlog.GetLogInfoParams) middleware.Responder {
 		RootHash:       &hashString,
 		TreeSize:       &treeSize,
 		SignedTreeHead: &scString,
+		TreeID:         &api.logID,
 	}
 	return tlog.NewGetLogInfoOK().WithPayload(&logInfo)
 }
