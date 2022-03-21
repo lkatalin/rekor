@@ -16,18 +16,29 @@ package sharding
 
 // VirtualLogIndex returns the virtual log index for a given leaf index
 func VirtualLogIndex(leafIndex int64, tid int64, ranges LogRanges) int64 {
-	// if we have no ranges, we have just one log! return the leafIndex as is
-	if ranges.Empty() {
-		return leafIndex
+	// if we have no inactive ranges, we have just one log! return the leafIndex as is
+	// as long as it matches the active tree ID
+	if ranges.NoInactive() {
+		if ranges.active == tid {
+			return leafIndex
+		}
+		return -1
 	}
 
 	var virtualIndex int64
-	for _, r := range ranges.GetRanges() {
+	// TODO: Are the tree IDs guaranteed to be ordered deterministically in the Ranges?
+	for _, r := range ranges.GetInactive() {
 		if r.TreeID == tid {
 			return virtualIndex + leafIndex
 		}
 		virtualIndex += r.TreeLength
 	}
-	// this should never happen
+
+	// If no TreeID in Inactive matches the tid, the virtual index should be the active tree
+	if ranges.active == tid {
+		return virtualIndex + leafIndex
+	}
+
+	// Otherwise, the tid is invalid
 	return -1
 }
