@@ -187,7 +187,14 @@ func createLogEntry(params entries.CreateLogEntryParams) (models.LogEntry, middl
 	metricNewEntries.Inc()
 
 	queuedLeaf := resp.getAddResult.QueuedLeaf.Leaf
-	uuid := hex.EncodeToString(queuedLeaf.GetMerkleLeafHash())
+
+	hexEncodedHash := hex.EncodeToString(queuedLeaf.GetMerkleLeafHash())
+	entryID, err := sharding.CreateEntryIDFromParts(fmt.Sprintf("%x", tc.logID), hexEncodedHash)
+	if err != nil {
+		err := fmt.Errorf("error creating EntryID from active treeID and uuid %v: %w", hexEncodedHash, err)
+		return nil, handleRekorAPIError(params, http.StatusInternalServerError, err, fmt.Sprintf(validationError, err))
+	}
+	uuid := entryID.ReturnEntryIDString()
 
 	// The log index should be the virtual log index across all shards
 	virtualIndex := sharding.VirtualLogIndex(queuedLeaf.LeafIndex, api.logRanges.ActiveTreeID(), api.logRanges)
@@ -221,7 +228,7 @@ func createLogEntry(params entries.CreateLogEntryParams) (models.LogEntry, middl
 				log.RequestIDLogger(params.HTTPRequest).Infof("no attestation for %s", uuid)
 				return
 			}
-			if err := storeAttestation(context.Background(), uuid, attestation); err != nil {
+			if err := storeAttestation(context.Background(), entryID.UUID, attestation); err != nil {
 				log.RequestIDLogger(params.HTTPRequest).Errorf("error storing attestation: %s", err)
 			}
 		}()
@@ -270,56 +277,89 @@ func getEntryURL(locationURL url.URL, uuid string) strfmt.URI {
 
 }
 
-// GetLogEntryByUUIDHandler gets log entry and inclusion proof for specified UUID aka merkle leaf hash
-func GetLogEntryByUUIDHandler(params entries.GetLogEntryByUUIDParams) middleware.Responder {
+// Attempt to retrieve a UUID from a backend tree
+// TODO: don't return a bool that specifies whether it is an error, but instead check
+// the middleware.Responder to see if it is an error type (how?)
+func AttemptRetrieveUUID(params entries.GetLogEntryByUUIDParams, uuid string, tid int64) (middleware.Responder, bool) {
 	ctx := params.HTTPRequest.Context()
-
-	uuid, err := sharding.GetUUIDFromIDString(params.EntryUUID)
-	if err != nil {
-		return handleRekorAPIError(params, http.StatusBadRequest, err, "")
-	}
-	var tid int64
-	tidString, err := sharding.GetTreeIDFromIDString(params.EntryUUID)
-	if err != nil {
-		// If EntryID is plain UUID, assume no sharding and use ActiveTreeID. The ActiveTreeID
-		// will == the tlog_id if a tlog_id is passed in at server startup.
-		if err.Error() == "cannot get treeID from plain UUID" {
-			tid = api.logRanges.ActiveTreeID()
-		} else {
-			return handleRekorAPIError(params, http.StatusBadRequest, err, "")
-		}
-	} else {
-		tid, err = strconv.ParseInt(tidString, 16, 64)
-		if err != nil {
-			return handleRekorAPIError(params, http.StatusBadRequest, err, "")
-		}
-	}
 	hashValue, _ := hex.DecodeString(uuid)
 
 	tc := NewTrillianClientFromTreeID(params.HTTPRequest.Context(), tid)
-	log.RequestIDLogger(params.HTTPRequest).Debugf("Retrieving UUID %v from TreeID %v", uuid, tid)
+	log.RequestIDLogger(params.HTTPRequest).Debugf("Attempting to retrieve UUID %v from TreeID %v", uuid, tid)
 
 	resp := tc.getLeafAndProofByHash(hashValue)
 	switch resp.status {
 	case codes.OK:
+		result := resp.getLeafAndProofResult
+		leaf := result.Leaf
+		if leaf == nil {
+			return handleRekorAPIError(params, http.StatusNotFound, errors.New("grpc returned 0 leaves with success code"), ""), true
+		}
+
+		logEntry, err := logEntryFromLeaf(ctx, api.signer, tc, leaf, result.SignedLogRoot, result.Proof, tid, api.logRanges)
+		if err != nil {
+			return handleRekorAPIError(params, http.StatusInternalServerError, err, ""), true
+		}
+		return entries.NewGetLogEntryByUUIDOK().WithPayload(logEntry), false
+
 	case codes.NotFound:
-		return handleRekorAPIError(params, http.StatusNotFound, fmt.Errorf("grpc error: %w", resp.err), "")
+		return handleRekorAPIError(params, http.StatusNotFound, fmt.Errorf("grpc error: %w", resp.err), ""), true
 	default:
-		return handleRekorAPIError(params, http.StatusInternalServerError, fmt.Errorf("grpc error: %w", resp.err), trillianUnexpectedResult)
+		return handleRekorAPIError(params, http.StatusInternalServerError, fmt.Errorf("grpc error: %w", resp.err), trillianUnexpectedResult), true
 	}
+}
 
-	result := resp.getLeafAndProofResult
-	leaf := result.Leaf
-	if leaf == nil {
-		return handleRekorAPIError(params, http.StatusNotFound, errors.New("grpc returned 0 leaves with success code"), "")
-	}
-
-	logEntry, err := logEntryFromLeaf(ctx, api.signer, tc, leaf, result.SignedLogRoot, result.Proof, tid, api.logRanges)
+// GetLogEntryByUUIDHandler gets log entry and inclusion proof for specified UUID aka merkle leaf hash
+func GetLogEntryByUUIDHandler(params entries.GetLogEntryByUUIDParams) middleware.Responder {
+	uuid, err := sharding.GetUUIDFromIDString(params.EntryUUID)
 	if err != nil {
-		return handleRekorAPIError(params, http.StatusInternalServerError, err, "")
+		return handleRekorAPIError(params, http.StatusBadRequest, err, "")
 	}
+	tidString, err := sharding.GetTreeIDFromIDString(params.EntryUUID)
 
-	return entries.NewGetLogEntryByUUIDOK().WithPayload(logEntry)
+	switch err {
+	// No error means we can route to the correct treeID from the entryID
+	case nil:
+		tid, err := strconv.ParseInt(tidString, 16, 64)
+		if err != nil {
+			return handleRekorAPIError(params, http.StatusBadRequest, err, "")
+		}
+		resp, _ := AttemptRetrieveUUID(params, uuid, tid)
+		return resp
+
+	// If there is an error, see if it is because the EntryID is a UUID and if so,
+	// handle it
+	default:
+		switch err.Error() {
+		// If EntryID is plain UUID (ex. from client v0.5), first try the active tree
+		case "cannot get treeID from plain UUID":
+			tid := api.logRanges.ActiveTreeID()
+			resp, isErr := AttemptRetrieveUUID(params, uuid, tid)
+			if isErr {
+				// ... then check all inactive trees
+				trees, err := GetTrees()
+				if err != nil {
+					return handleRekorAPIError(params, http.StatusInternalServerError, err, "")
+				}
+
+				for _, t := range trees.Tree {
+					if t.TreeType == trillian.TreeType_LOG {
+						tid := t.TreeId
+						resp, isErr := AttemptRetrieveUUID(params, uuid, tid)
+						if !isErr {
+							return resp
+						}
+					}
+				}
+			} else {
+				return resp
+			}
+
+		default:
+			return handleRekorAPIError(params, http.StatusBadRequest, err, "")
+		}
+	}
+	return handleRekorAPIError(params, http.StatusBadRequest, err, "UUID not found in any inactive trees")
 }
 
 // SearchLogQueryHandler searches log by index, UUID, or proposed entry and returns array of entries found with inclusion proofs

@@ -66,18 +66,41 @@ type API struct {
 	certChainPem string              // PEM encoded timestamping cert chain
 }
 
-func NewAPI(ranges sharding.LogRanges, treeID uint) (*API, error) {
+func GetTrees() (*trillian.ListTreesResponse, error) {
+	ctx := context.Background()
+	logAdminClient, _, err := GetLogServerAndClients(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get log server and clients")
+	}
+	lac := *logAdminClient
+	trees, err := lac.ListTrees(ctx, &trillian.ListTreesRequest{})
+	if err != nil {
+		return nil, errors.Wrap(err, "list trees")
+	}
+	return trees, nil
+}
+
+func GetLogServerAndClients(ctx context.Context) (*trillian.TrillianAdminClient, *trillian.TrillianLogClient, error) {
 	logRPCServer := fmt.Sprintf("%s:%d",
 		viper.GetString("trillian_log_server.address"),
 		viper.GetUint("trillian_log_server.port"))
-	ctx := context.Background()
 	tConn, err := dial(ctx, logRPCServer)
 	if err != nil {
-		return nil, errors.Wrap(err, "dial")
+		return nil, nil, errors.Wrap(err, "dial")
 	}
 	logAdminClient := trillian.NewTrillianAdminClient(tConn)
 	logClient := trillian.NewTrillianLogClient(tConn)
+	return &logAdminClient, &logClient, nil
+}
 
+func NewAPI(ranges sharding.LogRanges, treeID uint) (*API, error) {
+	ctx := context.Background()
+	lac, lc, err := GetLogServerAndClients(ctx)
+	if err != nil {
+		return nil, err
+	}
+	logAdminClient := *lac
+	logClient := *lc
 	tid := int64(treeID)
 	if tid == 0 {
 		log.Logger.Info("No tree ID specified, attempting to create a new tree")
